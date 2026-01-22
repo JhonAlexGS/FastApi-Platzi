@@ -1,18 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from datetime import datetime
-from models import Customer, Transaction, Invoice
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-
+from models import Customer, CustomerCreate, Transaction, Invoice
 import zoneinfo
-
-
-from pydantic import BaseModel
-
-class Customer(BaseModel) :
-    name: str
-    description: str | None
-    email: str
-    age: int
 
 country_timezones = {
     "CO": "America/Bogota",
@@ -72,9 +61,24 @@ async def get_time_by_iso(iso_code: str):
     except zoneinfo.ZoneInfoNotFoundError:
         raise HTTPException(status_code=400, detail=f"Zona horaria {timezone_str} no encontrada")
 
-@app.post("/customers")
-async def create_customer(customer_data: Customer):
-    return customer_data
+current_id: int = 0
+db_customers: list[Customer] = []
+
+@app.post("/customers", response_model=Customer)
+async def create_customer(customer_data: CustomerCreate):
+    customer = Customer.model_validate(customer_data.model_dump())
+    # Asumiendo que lo hace nen la base de datos 
+    customer.id = len(db_customers)
+    db_customers.append(customer)
+    return customer
+
+@app.get("/customers", response_model=list[Customer])
+async def list_customer():
+    return db_customers
+
+@app.get("/customersOne/{idCustomer}", response_model=Customer)
+async def get_one_customer(idCustomer: int):
+    return next((c for c in db_customers if c.id == idCustomer), None)
 
 @app.post("/transactions")
 async def create_transactions(transactions_data: Transaction):
