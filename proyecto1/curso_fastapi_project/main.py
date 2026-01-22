@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from datetime import datetime
-from pydantic import BaseModel
+from models import Customer, Transaction, Invoice
 
 import zoneinfo
 import time
@@ -14,14 +14,6 @@ country_timezones = {
 }
 
 app = FastAPI()
-
-class Customer(BaseModel):
-    name: str
-    description: str | None
-    email: str
-    age: int
-
-
 
 @app.get("/")
 def root():
@@ -55,3 +47,11 @@ async def get_time_by_iso(iso_code: str):
 @app.post("/customers")
 async def create_customer(customer_data: Customer):
     return customer_data
+
+@app.post("/transactions")
+async def create_transactions(transactions_data: Transaction):
+    return transactions_data
+
+@app.post("/invoices")
+async def create_invoices(invoices_data: Invoice):
+    return invoices_data
