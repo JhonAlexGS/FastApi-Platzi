@@ -1,9 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from datetime import datetime
 from models import Customer, Transaction, Invoice
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import zoneinfo
-import time
+
+
+from pydantic import BaseModel
+
+class Customer(BaseModel) :
+    name: str
+    description: str | None
+    email: str
+    age: int
 
 country_timezones = {
     "CO": "America/Bogota",
@@ -29,14 +38,33 @@ async def get_time():
     dataTime = datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
     return {"mensaje": dataTime}
 
+@app.get("/time2/{iso_code}")
+async def time(iso_code: str):
+    iso = iso_code.upper()
+    timezone_str = country_timezones.get(iso)
+
+    if not timezone_str:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Código ISO {iso_code} no soportado"
+        )
+
+    tz = zoneinfo.ZoneInfo(timezone_str)
+    formatted_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+    return {
+        "iso": iso,
+        "timezone": timezone_str,
+        "time": formatted_time
+    }
+
+
 @app.get("/timeIso/{iso_code}")
 async def get_time_by_iso(iso_code: str):
     iso = iso_code.upper()
     timezone_str = country_timezones.get(iso)
-    
     if not timezone_str:
         raise HTTPException(status_code=404, detail=f"Código ISO {iso_code} no soportado")
-    
     try:
         tz = zoneinfo.ZoneInfo(timezone_str)
         dataTime = datetime.now(tz).strftime("%A, %d. %B %Y %I:%M%p")
