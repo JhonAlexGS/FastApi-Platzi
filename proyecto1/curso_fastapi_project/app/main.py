@@ -1,9 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from datetime import datetime
 from models import Transaction, Invoice
 from .routers import customers, transactions, plans
 import zoneinfo
 from db import create_all_tables
+import time
+from typing import Annotated
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 country_timezones = {
     "CO": "America/Bogota",
@@ -21,9 +24,23 @@ app.include_router(customers.router)
 app.include_router(transactions.router)
 app.include_router(plans.router)
 
+@app.middleware("http")
+async def log_request_time(request: Request, call_next) :
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    print(f"Request: {request.url} completed in: {process_time:.4f} seconds")
+    return response
+
+security = HTTPBasic()
+
 @app.get("/")
-def root():
-    return {"mensaje": "Hola, Mundo"}
+async def root(credentials: Annotated [HTTPBasicCredentials ,Depends
+(security)]):
+    if credentials.username == "lcmartinez" and credentials.password == "qwerty":
+        return {"message": f"Hola, {credentials.username}!"}
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
 @app.get("/horaDia")
 def rootHoraDia():
@@ -36,7 +53,7 @@ async def get_time():
     return {"mensaje": dataTime}
 
 @app.get("/time2/{iso_code}")
-async def time(iso_code: str):
+async def time_ISO(iso_code: str):
     iso = iso_code.upper()
     timezone_str = country_timezones.get(iso)
 
