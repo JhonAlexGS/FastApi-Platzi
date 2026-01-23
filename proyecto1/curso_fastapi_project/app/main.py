@@ -1,8 +1,7 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException
 from datetime import datetime
 from models import Transaction, Invoice
-from .routers import customers
-from sqlmodel import select
+from .routers import customers, transactions
 import zoneinfo
 from db import create_all_tables
 
@@ -17,7 +16,9 @@ country_timezones = {
 
 
 app = FastAPI(lifespan=create_all_tables)
+
 app.include_router(customers.router)
+app.include_router(transactions.router)
 
 @app.get("/")
 def root():
@@ -67,9 +68,6 @@ async def get_time_by_iso(iso_code: str):
     except zoneinfo.ZoneInfoNotFoundError:
         raise HTTPException(status_code=400, detail=f"Zona horaria {timezone_str} no encontrada")
 
-@app.post("/transactions")
-async def create_transactions(transactions_data: Transaction):
-    return transactions_data
 
 @app.post("/invoices")
 async def create_invoices(invoices_data: Invoice):
