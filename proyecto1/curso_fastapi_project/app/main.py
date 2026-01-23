@@ -1,7 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from datetime import datetime
-from models import Customer, CustomerCreate, Transaction, Invoice
+from models import Transaction, Invoice
+from .routers import customers
+from sqlmodel import select
 import zoneinfo
+from db import create_all_tables
 
 country_timezones = {
     "CO": "America/Bogota",
@@ -11,7 +14,10 @@ country_timezones = {
     "PE": "America/Lima",
 }
 
-app = FastAPI()
+
+
+app = FastAPI(lifespan=create_all_tables)
+app.include_router(customers.router)
 
 @app.get("/")
 def root():
@@ -60,25 +66,6 @@ async def get_time_by_iso(iso_code: str):
         return {"mensaje": dataTime, "status": 201}
     except zoneinfo.ZoneInfoNotFoundError:
         raise HTTPException(status_code=400, detail=f"Zona horaria {timezone_str} no encontrada")
-
-current_id: int = 0
-db_customers: list[Customer] = []
-
-@app.post("/customers", response_model=Customer)
-async def create_customer(customer_data: CustomerCreate):
-    customer = Customer.model_validate(customer_data.model_dump())
-    # Asumiendo que lo hace nen la base de datos 
-    customer.id = len(db_customers)
-    db_customers.append(customer)
-    return customer
-
-@app.get("/customers", response_model=list[Customer])
-async def list_customer():
-    return db_customers
-
-@app.get("/customersOne/{idCustomer}", response_model=Customer)
-async def get_one_customer(idCustomer: int):
-    return next((c for c in db_customers if c.id == idCustomer), None)
 
 @app.post("/transactions")
 async def create_transactions(transactions_data: Transaction):

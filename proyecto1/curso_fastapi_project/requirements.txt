@@ -1,0 +1,4 @@
+
+
+fastapi==0.122.0
+sqlmodel==0.0.31
